@@ -1,4 +1,4 @@
-FROM debian:bullseye
+FROM debian:bookworm
 LABEL maintainer="Armin van der Togt <armin@vandertogt.org>"
 LABEL Description="Image with ARM & RISC-V toolchain, cmake, python3 & clang-format"
 WORKDIR /opt
@@ -11,7 +11,7 @@ RUN apt-get update && \
     bzip2 \
     gnupg
 RUN wget -O /tmp/llvm.key https://apt.llvm.org/llvm-snapshot.gpg.key && apt-key add /tmp/llvm.key
-RUN echo "\ndeb http://apt.llvm.org/bullseye/ llvm-toolchain-bullseye-15 main\n" >> /etc/apt/sources.list
+RUN echo "\ndeb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-15 main\n" >> /etc/apt/sources.list
 
 # Update the system and install libraries necessary for building embedded software
 RUN apt-get update && \
@@ -32,11 +32,11 @@ RUN apt-get update && \
       xz-utils
 
 
-RUN echo 'APT::Default-Release "bullseye";' > /etc/apt/apt.conf
+RUN echo 'APT::Default-Release "bookworm";' > /etc/apt/apt.conf
 
-RUN echo "\ndeb http://deb.debian.org/debian bullseye-backports main\n" >> /etc/apt/sources.list
+RUN echo "\ndeb http://deb.debian.org/debian bookworm-backports main\n" >> /etc/apt/sources.list
 
-RUN apt-get update && apt-get -t bullseye-backports install -y cmake && apt-get clean
+RUN apt-get update && apt-get install -y cmake && apt-get clean
 RUN cd /usr/bin && ln -s clang-format-15 clang-format && ln -s clang-15 clang && ln -s clang-15 clang++
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 
