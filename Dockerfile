@@ -1,6 +1,9 @@
-FROM python:3.12-slim-bookworm as base
+FROM python:3.12-slim-bookworm AS base
 LABEL maintainer="Armin van der Togt <armin@vandertogt.org>"
 LABEL Description="Image with ARM & RISC-V toolchain, cmake, python3 & clang-format"
+ARG LLVM_VERSION=18
+# Some known working tag ; change at your own risk!
+ARG OPENOCD_TAG=133dd9d669e5b8beb7c7787b0be677621808e72d
 WORKDIR /opt
 
 # Install wget and bzip2 and xz to be able to download & unpack the compilers
@@ -14,23 +17,23 @@ RUN apt-get update && \
 
 # Add the llvm repo and update all packages
 RUN wget -O /tmp/llvm.key https://apt.llvm.org/llvm-snapshot.gpg.key && apt-key add /tmp/llvm.key && \
-    echo "\ndeb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-16 main\n" >> /etc/apt/sources.list && \
+    echo "\ndeb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-$LLVM_VERSION main\n" >> /etc/apt/sources.list && \
     apt-get update && \
     apt-get upgrade -y && \
     apt-get clean
 
-# Install version 16 of clangformat
+# Install version $LLVM_VERSION of clangformat
 RUN apt-get install -y \
-    clang-format-16 && \
-    cd /usr/bin && ln -s clang-format-16 clang-format && \
+    clang-format-$LLVM_VERSION && \
+    cd /usr/bin && ln -s clang-format-$LLVM_VERSION clang-format && \
     apt-get clean
 
-# # Install version 16 of llvm
+# # Install version $LLVM_VERSION of llvm
 # RUN apt-get install -y \
-#     llvm-16 \
-#     clang-16 && \
+#     llvm-$LLVM_VERSION \
+#     clang-$LLVM_VERSION && \
 #     cd /usr/bin && \
-#     ln -s clang-16 clang && ln -s clang-16 clang++ && \
+#     ln -s clang-$LLVM_VERSION clang && ln -s clang-$LLVM_VERSION clang++ && \
 #     apt-get clean
 
 # Install libraries necessary for building embedded software
@@ -71,7 +74,7 @@ RUN apt-get install -y \
     libftdi1 && \
     apt-get clean
 
-from base as builder
+FROM base AS builder
 WORKDIR /build
 
 # For building GDB
@@ -105,14 +108,15 @@ RUN cd /build/gdb-14.2 && \
     make install
 
 # compile openocd
-RUN git clone https://git.code.sf.net/p/openocd/code openocd
+RUN git clone --recurse-submodules https://git.code.sf.net/p/openocd/code openocd
 RUN cd /build/openocd && \
+    git checkout $OPENOCD_TAG && \
     ./bootstrap && \
     ./configure --prefix=/opt/openocd && \
     make -j `nproc` && \
     make install
 
-from base
+FROM base
 COPY --from=builder /opt/gdb-14.2/ /opt/gdb-14.2
 COPY --from=builder /opt/openocd/ /opt/openocd
 
