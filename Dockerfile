@@ -1,7 +1,8 @@
 FROM python:3.12-slim-bookworm AS base
 LABEL maintainer="Armin van der Togt <armin@vandertogt.org>"
 LABEL Description="Image with ARM & RISC-V toolchain, cmake, python3 & clang-format"
-ARG LLVM_VERSION=18
+ARG LLVM_VERSION=19
+ARG GDB_VERSION=15.2
 # Some known working tag ; change at your own risk!
 ARG OPENOCD_TAG=133dd9d669e5b8beb7c7787b0be677621808e72d
 WORKDIR /opt
@@ -12,7 +13,8 @@ RUN apt-get update && \
     wget \
     bzip2 \
     xz-utils \
-    gnupg && \
+    gnupg \
+    nodejs && \
     apt-get clean
 
 # Add the llvm repo and update all packages
@@ -22,19 +24,22 @@ RUN wget -O /tmp/llvm.key https://apt.llvm.org/llvm-snapshot.gpg.key && apt-key 
     apt-get upgrade -y && \
     apt-get clean
 
-# Install version $LLVM_VERSION of clangformat
+# Install clangformat
 RUN apt-get install -y \
     clang-format-$LLVM_VERSION && \
     cd /usr/bin && ln -s clang-format-$LLVM_VERSION clang-format && \
     apt-get clean
 
-# # Install version $LLVM_VERSION of llvm
-# RUN apt-get install -y \
-#     llvm-$LLVM_VERSION \
-#     clang-$LLVM_VERSION && \
-#     cd /usr/bin && \
-#     ln -s clang-$LLVM_VERSION clang && ln -s clang-$LLVM_VERSION clang++ && \
-#     apt-get clean
+
+# Install version $LLVM_VERSION of llvm
+RUN apt-get install -y \
+    llvm-$LLVM_VERSION \
+    libc++-$LLVM_VERSION-dev \
+    libc++abi-$LLVM_VERSION-dev \
+    clang-$LLVM_VERSION && \
+    cd /usr/bin && \
+    ln -s clang-$LLVM_VERSION clang && ln -s clang-$LLVM_VERSION clang++ && \
+    apt-get clean
 
 # Install libraries necessary for building embedded software
 RUN apt-get install -y \
@@ -45,7 +50,7 @@ RUN apt-get install -y \
     ninja-build && \
     apt-get clean
 
-# For nanopb 
+# Install protobuf and  nanopb 
 RUN apt-get install -y \
     protobuf-compiler \
     python3-protobuf \
@@ -75,7 +80,23 @@ RUN apt-get install -y \
     apt-get clean
 
 FROM base AS builder
+ADD get-and-unpack.sh /usr/local/bin
+RUN chmod +x /usr/local/bin/get-and-unpack.sh
+RUN mkdir -p /packages
+COPY download/* /packages
+
+# Get all the toolchains
+WORKDIR /unpack
+RUN get-and-unpack.sh https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2
+RUN get-and-unpack.sh https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-eabi.tar.xz
+RUN get-and-unpack.sh https://developer.arm.com/-/media/Files/downloads/gnu/14.3.rel1/binrel/arm-gnu-toolchain-14.3.rel1-x86_64-arm-none-eabi.tar.xz
+
+RUN get-and-unpack.sh https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack/releases/download/v12.4.0-2/xpack-riscv-none-elf-gcc-12.4.0-2-linux-x64.tar.gz
+
 WORKDIR /build
+# Get the source files
+RUN get-and-unpack.sh https://ftp.gnu.org/gnu/gdb/gdb-$GDB_VERSION.tar.xz 
+RUN git clone --recurse-submodules https://git.code.sf.net/p/openocd/code openocd
 
 # For building GDB
 RUN apt-get install -y \
@@ -96,9 +117,8 @@ RUN apt-get install -y \
     libftdi-dev
 
 # Create a multiarch GDB
-RUN wget -qO- https://ftp.gnu.org/gnu/gdb/gdb-14.2.tar.xz  | tar -xJ
-RUN cd /build/gdb-14.2 && \
-    ./configure --prefix=/opt/gdb-14.2 \
+RUN cd /build/gdb-$GDB_VERSION && \
+    ./configure --prefix=/opt/gdb-$GDB_VERSION \
         --enable-targets=all \
         --enable-languages=all \
         --enable-multilib \
@@ -108,7 +128,6 @@ RUN cd /build/gdb-14.2 && \
     make install
 
 # compile openocd
-RUN git clone --recurse-submodules https://git.code.sf.net/p/openocd/code openocd
 RUN cd /build/openocd && \
     git checkout $OPENOCD_TAG && \
     ./bootstrap && \
@@ -117,18 +136,8 @@ RUN cd /build/openocd && \
     make install
 
 FROM base
-COPY --from=builder /opt/gdb-14.2/ /opt/gdb-14.2
-COPY --from=builder /opt/openocd/ /opt/openocd
-
-WORKDIR /opt
-
-# Download the toolchains from ARM
-RUN wget -qO- https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2 | tar -xj
-RUN wget -qO- https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-eabi.tar.xz | tar -xJ
-
-# Download the toolchain for RISC-V
-RUN wget -qO- https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack/releases/download/v12.2.0-3/xpack-riscv-none-elf-gcc-12.2.0-3-linux-x64.tar.gz | tar -xz
-#RUN wget -qO- https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack/releases/download/v13.2.0-2/xpack-riscv-none-elf-gcc-13.2.0-2-linux-x64.tar.gz | tar -xz
+COPY --from=builder /opt /opt
+COPY --from=builder /unpack /opt
 
 # For git
 RUN git config --global --add safe.directory '*'

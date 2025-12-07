@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION=v1.9
+VERSION=v1.11.0
 set -e
 set -x
 
