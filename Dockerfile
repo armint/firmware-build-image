@@ -92,6 +92,7 @@ RUN get-and-unpack.sh https://developer.arm.com/-/media/Files/downloads/gnu/12.3
 RUN get-and-unpack.sh https://developer.arm.com/-/media/Files/downloads/gnu/14.3.rel1/binrel/arm-gnu-toolchain-14.3.rel1-x86_64-arm-none-eabi.tar.xz
 
 RUN get-and-unpack.sh https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack/releases/download/v12.4.0-2/xpack-riscv-none-elf-gcc-12.4.0-2-linux-x64.tar.gz
+RUN get-and-unpack.sh https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack/releases/download/v15.2.0-1/xpack-riscv-none-elf-gcc-15.2.0-1-linux-x64.tar.gz
 
 WORKDIR /build
 # Get the source files
