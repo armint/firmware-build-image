@@ -1,7 +1,7 @@
-FROM python:3.12-slim-bookworm AS base
+FROM python:3.12-slim-trixie AS base
 LABEL maintainer="Armin van der Togt <armin@vandertogt.org>"
 LABEL Description="Image with ARM & RISC-V toolchain, cmake, python3 & clang-format"
-ARG LLVM_VERSION=19
+ARG LLVM_VERSION=20
 ARG GDB_VERSION=15.2
 # Some known working tag ; change at your own risk!
 ARG OPENOCD_TAG=133dd9d669e5b8beb7c7787b0be677621808e72d
@@ -18,8 +18,8 @@ RUN apt-get update && \
     apt-get clean
 
 # Add the llvm repo and update all packages
-RUN wget -O /tmp/llvm.key https://apt.llvm.org/llvm-snapshot.gpg.key && apt-key add /tmp/llvm.key && \
-    echo "\ndeb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-$LLVM_VERSION main\n" >> /etc/apt/sources.list && \
+RUN wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc && \
+    echo "deb http://apt.llvm.org/trixie/ llvm-toolchain-trixie-$LLVM_VERSION main\n" >> /etc/apt/sources.list.d/llvm.list && \
     apt-get update && \
     apt-get upgrade -y && \
     apt-get clean
@@ -65,13 +65,6 @@ RUN apt-get install -y \
     libsource-highlight4v5 && \
     apt-get clean
 
-
-# for the version of gdb included with the gnu arm toolchain
-RUN apt-get install -y \
-libncurses5 \
-libncursesw5 && \
-apt-get clean
-
 # For openocd
 RUN apt-get install -y \
     libusb-1.0-0 \
@@ -84,20 +77,6 @@ ADD get-and-unpack.sh /usr/local/bin
 RUN chmod +x /usr/local/bin/get-and-unpack.sh
 RUN mkdir -p /packages
 COPY download/* /packages
-
-# Get all the toolchains
-WORKDIR /unpack
-RUN get-and-unpack.sh https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2
-RUN get-and-unpack.sh https://developer.arm.com/-/media/Files/downloads/gnu/12.3.rel1/binrel/arm-gnu-toolchain-12.3.rel1-x86_64-arm-none-eabi.tar.xz
-RUN get-and-unpack.sh https://developer.arm.com/-/media/Files/downloads/gnu/14.3.rel1/binrel/arm-gnu-toolchain-14.3.rel1-x86_64-arm-none-eabi.tar.xz
-
-RUN get-and-unpack.sh https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack/releases/download/v12.4.0-2/xpack-riscv-none-elf-gcc-12.4.0-2-linux-x64.tar.gz
-RUN get-and-unpack.sh https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack/releases/download/v15.2.0-1/xpack-riscv-none-elf-gcc-15.2.0-1-linux-x64.tar.gz
-
-WORKDIR /build
-# Get the source files
-RUN get-and-unpack.sh https://ftp.gnu.org/gnu/gdb/gdb-$GDB_VERSION.tar.xz 
-RUN git clone --recurse-submodules https://git.code.sf.net/p/openocd/code openocd
 
 # For building GDB
 RUN apt-get install -y \
@@ -117,6 +96,11 @@ RUN apt-get install -y \
     libhidapi-dev \
     libftdi-dev
 
+WORKDIR /build
+
+# Get the GDB source files
+RUN get-and-unpack.sh https://ftp.gnu.org/gnu/gdb/gdb-$GDB_VERSION.tar.xz
+
 # Create a multiarch GDB
 RUN cd /build/gdb-$GDB_VERSION && \
     ./configure --prefix=/opt/gdb-$GDB_VERSION \
@@ -125,16 +109,28 @@ RUN cd /build/gdb-$GDB_VERSION && \
         --enable-multilib \
         --enable-interwork \
         --disable-nls && \
-    make -j `nproc` && \
+    make -j && \
     make install
+
+# Clone openocd
+RUN git clone --recurse-submodules https://git.code.sf.net/p/openocd/code openocd
 
 # compile openocd
 RUN cd /build/openocd && \
     git checkout $OPENOCD_TAG && \
     ./bootstrap && \
     ./configure --prefix=/opt/openocd && \
-    make -j `nproc` && \
+    make -j && \
     make install
+
+# Get all the toolchains
+WORKDIR /unpack
+RUN get-and-unpack.sh https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2
+RUN get-and-unpack.sh https://developer.arm.com/-/media/Files/downloads/gnu/14.3.rel1/binrel/arm-gnu-toolchain-14.3.rel1-x86_64-arm-none-eabi.tar.xz
+
+RUN get-and-unpack.sh https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack/releases/download/v15.2.0-1/xpack-riscv-none-elf-gcc-15.2.0-1-linux-x64.tar.gz
+
+
 
 FROM base
 COPY --from=builder /opt /opt
