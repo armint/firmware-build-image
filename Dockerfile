@@ -50,13 +50,16 @@ RUN apt-get install -y \
     ninja-build && \
     apt-get clean
 
-# Install protobuf and  nanopb 
-RUN apt-get install -y \
-    protobuf-compiler \
-    python3-protobuf \
+# Install protobuf (from official release for editions support) and nanopb
+ARG PROTOBUF_VERSION=34.0
+RUN wget -q https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protoc-${PROTOBUF_VERSION}-linux-x86_64.zip -O /tmp/protoc.zip && \
+    apt-get install -y unzip && \
+    unzip -o /tmp/protoc.zip -d /usr/local bin/protoc 'include/*' && \
+    rm /tmp/protoc.zip && \
+    apt-get install -y \
     python3-pip \
-    python3-intelhex \
     python3-virtualenv && \
+    pip install --break-system-packages protobuf intelhex && \
     apt-get clean
 
 # For GDB
