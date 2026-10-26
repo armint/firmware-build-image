@@ -113,7 +113,7 @@ RUN cd /build/gdb-$GDB_VERSION && \
         --enable-multilib \
         --enable-interwork \
         --disable-nls && \
-    make -j && \
+    make -j"$(nproc)" && \
     make install
 
 # Clone openocd
@@ -124,7 +124,7 @@ RUN cd /build/openocd && \
     git checkout $OPENOCD_TAG && \
     ./bootstrap && \
     ./configure --prefix=/opt/openocd && \
-    make -j && \
+    make -j"$(nproc)" && \
     make install
 
 # Get all the toolchains
