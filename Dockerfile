@@ -137,7 +137,7 @@ RUN get-and-unpack.sh https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpac
 FROM base
 COPY --from=builder /opt /opt
 COPY --from=builder /unpack /opt
-ENV PATH="/opt/arm-gnu-toolchain-15.3.rel2-x86_64-arm-none-eabi/bin:/opt/xpack-riscv-none-elf-gcc-15.2.0-1/bin:${PATH}"
+ENV PATH="/opt/arm-gnu-toolchain-15.3.rel2-x86_64-arm-none-eabi/bin:/opt/xpack-riscv-none-elf-gcc-15.2.0-1/bin:/opt/gdb-${GDB_VERSION}/bin:/opt/openocd/bin:${PATH}"
 
 # For git
 RUN git config --global --add safe.directory '*'

@@ -19,8 +19,8 @@ The image uses `python:3.12-slim-trixie` (Debian trixie) as its base.
 | CMake, Ninja, Git, build-essential | Debian packages | `/usr/bin` |
 | Python packages `protobuf`, `intelhex` | latest from PyPI | system Python |
 
-The `bin` directories of the Arm and RISC-V toolchains are on the `PATH`.
-GDB and OpenOCD are not on the `PATH`. Use the full path for these tools.
+The `bin` directories of the Arm and RISC-V toolchains, GDB and OpenOCD
+are on the `PATH`.
 
 ## Build the image
 
