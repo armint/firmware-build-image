@@ -19,8 +19,8 @@ The image uses `python:3.12-slim-trixie` (Debian trixie) as its base.
 | CMake, Ninja, Git, build-essential | Debian packages | `/usr/bin` |
 | Python packages `protobuf`, `intelhex` | latest from PyPI | system Python |
 
-The cross-compilers are not on the `PATH`. Use the full path, or set the
-toolchain path in your CMake toolchain file.
+The `bin` directories of the Arm and RISC-V toolchains are on the `PATH`.
+GDB and OpenOCD are not on the `PATH`. Use the full path for these tools.
 
 ## Build the image
 
@@ -53,12 +53,13 @@ Mount your project and run the build in the container:
 
 ```sh
 docker run --rm -v "$PWD":/src -w /src docker.vandertogt.org/firmware-builder:v1.15.0 \
-    /opt/arm-gnu-toolchain-15.3.rel2-x86_64-arm-none-eabi/bin/arm-none-eabi-gcc --version
+    arm-none-eabi-gcc --version
 ```
 
 ## Update a tool
 
 1. Change the version in the `Dockerfile`. Toolchains use a download URL.
    GDB, LLVM, protobuf and OpenOCD use an `ARG`.
+   For a toolchain, also change its directory in the `ENV PATH` line.
 2. Increase `VERSION` in `build.sh`.
 3. Update the table in this README.
