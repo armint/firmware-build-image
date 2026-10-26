@@ -65,6 +65,9 @@ image to the GitHub Container Registry (GHCR) with two tags:
 - `ghcr.io/armint/firmware-build-image:<tag>`
 - `ghcr.io/armint/firmware-build-image:latest`
 
+GHCR makes a new package private. After the first publish, open the package
+settings on GitHub and set the visibility to public. Do this one time only.
+
 The repository is on GitLab and on GitHub
 (https://github.com/armint/firmware-build-image). Merge requests use GitLab.
 Push the branches and tags to the `github` remote too, so that GitHub builds
