@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+git diff --quiet HEAD || { echo "Commit or stash your changes first" >&2; exit 1; }
 # The image version is the git tag on the current commit, e.g. v1.15.0
 VERSION=$(git describe --tags --exact-match) || { echo "Tag the current commit first (git tag vX.Y.Z)" >&2; exit 1; }
 set -x

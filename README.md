@@ -29,7 +29,8 @@ The git tag on the current commit sets the image version, for example
 
 The `build.sh` script builds the image locally and pushes it to
 `docker.vandertogt.org/firmware-builder`. The script stops with an error if
-the current commit has no tag.
+the current commit has no tag, or if the working tree has changes that are
+not committed.
 
 ```sh
 git tag v1.15.0
