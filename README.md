@@ -44,8 +44,9 @@ The build copies all files from the `download/` directory into the image
 as a cache. The `get-and-unpack.sh` script uses a cached file if it is
 available. If the file is not in the cache, the script downloads it.
 
-The `download/` directory is in `.gitignore`. It must contain at least one
-file, because the `COPY download/*` step fails on an empty directory.
+The files in `download/` are in `.gitignore`. Git keeps only
+`download/.gitkeep`, so the directory is always available. An empty cache is
+valid: the build then downloads all files.
 
 ## Use the image
 

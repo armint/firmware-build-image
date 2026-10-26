@@ -79,7 +79,8 @@ FROM base AS builder
 ADD get-and-unpack.sh /usr/local/bin
 RUN chmod +x /usr/local/bin/get-and-unpack.sh
 RUN mkdir -p /packages
-COPY download/* /packages
+# download/ is an optional local cache; .gitkeep keeps the directory in git
+COPY download/ /packages/
 
 # For building GDB
 RUN apt-get install -y \
