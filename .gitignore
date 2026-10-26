@@ -1,2 +1,3 @@
 downloads
-download
+download/*
+!download/.gitkeep

@@ -79,7 +79,8 @@ FROM base AS builder
 ADD get-and-unpack.sh /usr/local/bin
 RUN chmod +x /usr/local/bin/get-and-unpack.sh
 RUN mkdir -p /packages
-COPY download/* /packages
+# download/ is an optional local cache; .gitkeep keeps the directory in git
+COPY download/ /packages/
 
 # For building GDB
 RUN apt-get install -y \
@@ -112,7 +113,7 @@ RUN cd /build/gdb-$GDB_VERSION && \
         --enable-multilib \
         --enable-interwork \
         --disable-nls && \
-    make -j && \
+    make -j"$(nproc)" && \
     make install
 
 # Clone openocd
@@ -123,7 +124,7 @@ RUN cd /build/openocd && \
     git checkout $OPENOCD_TAG && \
     ./bootstrap && \
     ./configure --prefix=/opt/openocd && \
-    make -j && \
+    make -j"$(nproc)" && \
     make install
 
 # Get all the toolchains
