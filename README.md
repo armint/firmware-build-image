@@ -24,11 +24,15 @@ are on the `PATH`.
 
 ## Build the image
 
-The `build.sh` script builds the image, adds the tags and pushes the image
-to `docker.vandertogt.org/firmware-builder`. The `VERSION` variable in
-`build.sh` sets the image tag.
+The git tag on the current commit sets the image version, for example
+`v1.15.0`. The repository has no other version number.
+
+The `build.sh` script builds the image locally and pushes it to
+`docker.vandertogt.org/firmware-builder`. The script stops with an error if
+the current commit has no tag.
 
 ```sh
+git tag v1.15.0
 ./build.sh
 ```
 
@@ -48,12 +52,40 @@ The files in `download/` are in `.gitignore`. Git keeps only
 `download/.gitkeep`, so the directory is always available. An empty cache is
 valid: the build then downloads all files.
 
+### GitHub Actions
+
+The `.github/workflows/docker.yml` workflow builds the image on GitHub for
+each branch push and for each pull request. These builds only
+check that the image builds.
+
+When you push a tag that starts with `v`, the workflow also publishes the
+image to the GitHub Container Registry (GHCR) with two tags:
+
+- `ghcr.io/armint/firmware-build-image:<tag>`
+- `ghcr.io/armint/firmware-build-image:latest`
+
+The repository is on GitLab and on GitHub
+(https://github.com/armint/firmware-build-image). Merge requests use GitLab.
+Push the branches and tags to the `github` remote too, so that GitHub builds
+them. To add the remote, run this command one time:
+
+```sh
+git remote add github https://github.com/armint/firmware-build-image.git
+```
+
+To publish a release, push the tag to GitHub:
+
+```sh
+git tag v1.15.0
+git push github v1.15.0
+```
+
 ## Use the image
 
 Mount your project and run the build in the container:
 
 ```sh
-docker run --rm -v "$PWD":/src -w /src docker.vandertogt.org/firmware-builder:v1.15.0 \
+docker run --rm -v "$PWD":/src -w /src ghcr.io/armint/firmware-build-image:latest \
     arm-none-eabi-gcc --version
 ```
 
@@ -62,5 +94,11 @@ docker run --rm -v "$PWD":/src -w /src docker.vandertogt.org/firmware-builder:v1
 1. Change the version in the `Dockerfile`. Toolchains use a download URL.
    GDB, LLVM, protobuf and OpenOCD use an `ARG`.
    For a toolchain, also change its directory in the `ENV PATH` line.
-2. Increase `VERSION` in `build.sh`.
-3. Update the table in this README.
+2. Update the table in this README.
+3. After the merge, tag the merge commit with the next version.
+
+## License
+
+The files in this repository use the MIT license. See [LICENSE](LICENSE).
+The tools in the image use their own licenses. For example, GCC and GDB
+use the GNU General Public License (GPL).
